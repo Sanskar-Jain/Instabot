@@ -11,19 +11,31 @@ def check_status(data):
         return False
 
 
-def print_info(data):
+def sorry_message():
+    print("\n____________________________________________________ User Information _____________________________________________________\n")
+    print("Sorry! User with the given username does not exists.")
+    print("\n___________________________________________________________________________________________________________________________\n")
+
+
+def print_info(data,self='self'):
     if check_status(data):
-        print("Details of owner in Json Format :")
-        print(data)
-        print("\nDetails of owner in Normal Form :")
-        print("Name : ", data['data']['full_name'])
-        print("Username : ", data['data']['username'])
+        if self == 'self':
+            print("\n____________________________________________________ Owner Information ____________________________________________________\n")
+        else:
+            print("\n____________________________________________________ User Information _____________________________________________________\n")
+        print("Name                    : ", data['data']['full_name'])
+        print("Username                : ", data['data']['username'])
         print("Link to Profile Picture : ", data['data']['profile_picture'])
-        print("Media Shared : ", data['data']['counts']['media'])
-        print("Followed By : ", data['data']['counts']['followed_by'])
-        print("Followers : ", data['data']['counts']['follows'])
+        print("Media Shared            : ", data['data']['counts']['media'])
+        print("Followed By             : ", data['data']['counts']['followed_by'])
+        print("Followers               : ", data['data']['counts']['follows'])
+        if data['data']['bio'] != '':
+            print("Bio                     : ", data['data']['bio'])
+        else:
+            print("Bio                     :  No info available")
+        print("\n___________________________________________________________________________________________________________________________\n")
     else:
-        print("Some error occurred. Try Again Later.")
+        print("\nSome error occurred. Try Again Later.")
 
 
 def get_self_details():
@@ -33,10 +45,12 @@ def get_self_details():
 
 
 def get_info(user_id):
-    url = BASE_URL + "/users/" + user_id + "/?access_token=" + API_ACCESS_TOKEN
-    data = requests.get(url).json()
-    print_info(data)
-    return data
+    if user_id:
+        url = BASE_URL + "/users/" + user_id + "/?access_token=" + API_ACCESS_TOKEN
+        data = requests.get(url).json()
+        print_info(data,'user')
+    else:
+        return False
 
 
 def get_user_id(username):
@@ -44,13 +58,12 @@ def get_user_id(username):
     data = requests.get(url).json()
     if check_status(data):
         if data['data'] == []:
-            print("Sorry! User with the given username does not exists.")
+            sorry_message()
             return False
         else:
             user_id = data['data'][0]['id']
             return user_id
     else:
-        print("Some error occurred. Try Again Later.")
         return False
 
 
@@ -78,64 +91,69 @@ def no_of_posts(username):
         return False
 
 
-def user_recent_posts(username):
+def user_popular_posts(username):
     user_id = get_user_id(username)
-    url = BASE_URL + "/users/" + str(user_id) + "/media/recent/?access_token=" + API_ACCESS_TOKEN
-    data = requests.get(url).json()
-    post_ids = []
-    post_likes = []
-    post_comments = []
-    post_links = []
-    for media in (data['data']):
-        post_ids.append(media['id'])
-        post_likes.append(media['likes']['count'])
-        post_comments.append(media['comments']['count'])
-        post_links.append(media['link'])
-    print("Which Recent Post you wanna select ?")
-    print("1. The one with maximum likes.")
-    print("2. The one with maximum comments.")
-    choice = input("Enter your choice (1 or 2) : ")
-    if choice not in ['1', '2']:
-        while choice not in ['1', '2']:
-            print("You entered the wrong choice. Please choose from given options.")
-            choice = input("Enter your choice (1 or 2) : ")
-    if int(choice) == 1:
-        max_likes = max(post_likes)
-        pos = post_likes.index(max_likes)
-        return post_ids[pos]
-    elif int(choice) == 2:
-        max_comments = max(post_comments)
-        pos = post_comments.index(max_comments)
-        return post_ids[pos]
+    if user_id:
+        url = BASE_URL + "/users/" + str(user_id) + "/media/recent/?access_token=" + API_ACCESS_TOKEN
+        data = requests.get(url).json()
+        post_ids = []
+        post_likes = []
+        post_comments = []
+        post_links = []
+        for media in (data['data']):
+            post_ids.append(media['id'])
+            post_likes.append(media['likes']['count'])
+            post_comments.append(media['comments']['count'])
+            post_links.append(media['link'])
+        print("\nWhich Recent Post you wanna select ?")
+        print("1. The one with maximum likes.")
+        print("2. The one with maximum comments.")
+        choice = input("\nEnter your choice (1 or 2) : ")
+        if choice not in ['1', '2']:
+            while choice not in ['1', '2']:
+                print("You entered the wrong choice. Please choose from given options.")
+                choice = input("Enter your choice (1 or 2) : ")
+        if int(choice) == 1:
+            max_likes = max(post_likes)
+            pos = post_likes.index(max_likes)
+            return post_ids[pos],post_links[pos]
+        elif int(choice) == 2:
+            max_comments = max(post_comments)
+            pos = post_comments.index(max_comments)
+            return post_ids[pos], post_links[pos]
+    else:
+        return False,False
 
 
 def like_user_post(username):
-    post_id = user_recent_posts(username)
-    url = BASE_URL + "/media/" + str(post_id) + "/likes"
-    payload = {'access_token': API_ACCESS_TOKEN}
-    data = requests.post(url, payload).json()
-    if data['meta']['code'] == 200:
-        print("The post has been liked.")
-    else:
-        print("Some error occurred! Try Again.")
+    post_id, post_link = user_popular_posts(username)
+    if post_id and post_link:
+        url = BASE_URL + "/media/" + str(post_id) + "/likes"
+        payload = {'access_token': API_ACCESS_TOKEN}
+        data = requests.post(url, payload).json()
+        if data['meta']['code'] == 200:
+            print("The post has been liked.")
+        else:
+            print("Some error occurred! Try Again.")
 
 
 def comment_user_post(username):
-    post_id = user_recent_posts(username)
-    url = BASE_URL + "/media/" + str(post_id) + "/comments"
-    text = input("Enter the comment you wanna post : ")
-    payload = {'access_token': API_ACCESS_TOKEN, 'text': text}
-    data = requests.post(url, payload).json()
-    if data['meta']['code'] == 200:
-        print("Your comment has been Posted.")
-    else:
-        print("Some error occurred! Try Again.")
+    post_id, post_link = user_popular_posts(username)
+    if post_id and post_link:
+        url = BASE_URL + "/media/" + str(post_id) + "/comments"
+        text = input("\nEnter the comment you wanna post : ")
+        payload = {'access_token': API_ACCESS_TOKEN, 'text': text}
+        data = requests.post(url, payload).json()
+        if data['meta']['code'] == 200:
+            print("\nYour comment has been Posted.")
+        else:
+            print("\nSome error occurred! Try Again.")
 
 
 def search_in_comment(username, word_to_be_searched='-1'):
     if word_to_be_searched == '-1':
-        word_to_be_searched = input("Enter the word you want to search in comments of most popular post : ")
-    post_id = user_recent_posts(username)
+        word_to_be_searched = input("Enter the word you want to search in comments of most interesting post : ")
+    post_id, post_link = user_popular_posts(username)
     url = BASE_URL + "/media/" + str(post_id) + "/comments/?access_token=" + API_ACCESS_TOKEN
     data = requests.get(url).json()
     list_of_comments = []
@@ -161,54 +179,92 @@ def search_in_comment(username, word_to_be_searched='-1'):
 
 
 def delete_comment(username):
-    word_to_be_searched = input("Enter the word you want to search and delete comment for in most popular post : ")
-    comments_id_found, post_id, comments_found = search_in_comment(username, word_to_be_searched)
-    if not comments_id_found:
-        return False
-    else:
-        for i in range(len(comments_id_found)):
-            url = BASE_URL + "/media/" + str(post_id) + "/comments/" + str(comments_id_found[i]) + "/?access_token=" + API_ACCESS_TOKEN
-            data = requests.delete(url).json()
-            if check_status(data):
-                print("%s --> Deleted." % comments_found[i])
-            elif data['meta']['error_message'] == "You cannot delete this comment":
-                print(data['meta']['error_message'])
-            else:
-                print("Some error occurred. Try Again Later.")
+    user_id = get_user_id(username)
+    if user_id:
+        word_to_be_searched = input("Enter the word you want to search and delete comment for in most interesting post : ")
+        comments_id_found, post_id, comments_found = search_in_comment(username, word_to_be_searched)
+        if not comments_id_found:
+            return False
+        else:
+            for i in range(len(comments_id_found)):
+                url = BASE_URL + "/media/" + str(post_id) + "/comments/" + str(comments_id_found[i]) + "/?access_token=" + API_ACCESS_TOKEN
+                data = requests.delete(url).json()
+                if check_status(data):
+                    print("%s --> Deleted." % comments_found[i])
+                    break
+                elif data['meta']['error_message'] == "You cannot delete this comment":
+                    print("%d. %s --> %s as it is made by another user."%(i, comments_found[i], data['meta']['error_message']))
+                else:
+                    print("Some error occurred. Try Again Later.")
 
 
 def find_average_words_per_comment(post_id):
     url = BASE_URL + "/media/" + str(post_id) + "/comments/?access_token=" + API_ACCESS_TOKEN
     data = requests.get(url).json()
-    list_of_comments = []
-    total_no_of_words = 0
-    comments_id = []
-    for comment in data['data']:
-        list_of_comments.append(comment['text'])
-        total_no_of_words += len(comment['text'].split())
-        comments_id.append(comment['id'])
-    average_words = total_no_of_words/len(list_of_comments)
-    print(total_no_of_words)
-    print(len(comments_id))
-    print("Average no. of words per comment in most popular post = %d" % average_words)
+    if len(data['data']) == 0:
+        print("There are no comments on this post...")
+    else:
+        list_of_comments = []
+        total_no_of_words = 0
+        comments_id = []
+        for comment in data['data']:
+            list_of_comments.append(comment['text'])
+            total_no_of_words += len(comment['text'].split())
+            comments_id.append(comment['id'])
+        print(total_no_of_words)
+        print(len(list_of_comments))
+        print(list_of_comments)
+        average_words = float(total_no_of_words)/len(list_of_comments)
+        print("\nAverage no. of words per comment in most interesting post = %.2f" % average_words)
 
 
 def average_words_per_comment(username):
-    post_id = user_recent_posts(username)
-    find_average_words_per_comment(post_id)
+    user_id = get_user_id(username)
+    if user_id:
+        post_id, post_link = user_popular_posts(username)
+        find_average_words_per_comment(post_id)
 
 
-user_name = "bot_demo"
-# print(user_recent_posts(username))
-# like_user_post(username)
-# delete_comment(username)
-average_words_per_comment(user_name)
-# user_recent_posts(username)
-# print(no_of_posts(username))
-# comment_user_post(username)
-# search_in_comment(username)
-# get_self_details()
-# print(get_user_id(username))
-# user-id : bot_demo : 4990969427
-# user-id : kamal_kashyap13 : 1379413795
-# get_user_id("sanskar27jan_")
+print("\nHello User! Welcome to the Instabot Environment.\n")
+print("What do you want to do using the bot?")
+print("1. Get the Details of the owner.")
+print("2. Get the UserId of the User.")
+print("3. Get Information about the User.")
+print("4. Get the most popular post of the User.")
+print("5. Like a post of the User.")
+print("6. Comment on post of the User.")
+print("7. Delete the comment containing a particular word.")
+print("8. Get the average no. of words per comment in most insteresting post.\n\n")
+
+choice = int(input("Enter Your Choice(1-8) : "))
+
+if choice == 1:
+    get_self_details()
+else:
+    user_name = input("\nEnter the Username of the User : ")
+    if choice == 2:
+        user_id = get_user_id(user_name)
+        if user_id :
+            print("\n__________ UserId __________")
+            print("\nUsername : %s" %user_name)
+            print("UserId : %s" %user_id)
+            print("\n____________________________")
+    elif choice == 3:
+        user_id = get_user_id(user_name)
+        if user_id:
+            get_info(user_id)
+    elif choice == 4:
+        post_id, post_link = user_popular_posts(user_name)
+        if post_link and post_id:
+            print("\n\n_________________________ Most Popular Post _________________________")
+            print("\nPost Id : %s" %post_id)
+            print("Post Link : %s" %post_link)
+            print("\n_____________________________________________________________________")
+    elif choice == 5:
+        like_user_post(user_name)
+    elif choice == 6:
+        comment_user_post(user_name)
+    elif choice == 7:
+        delete_comment(user_name)
+    elif choice == 8:
+        average_words_per_comment(user_name)
