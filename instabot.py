@@ -1,9 +1,20 @@
+# --------------------------------------------------------------------------------------------------------------------#
+# ------------------------------------------------ INSTABOT ----------------------------------------------------------#
+# --------------------------------------------------------------------------------------------------------------------#
+
+
+# Imports requests library for handling HTTP requests.
 import requests
 
+
+# Access Token generated from Instabot servers.
 API_ACCESS_TOKEN = "3757590807.86dd109.a97ce7641dea40a4883ce2b22b9a0efd"
+
+# Base URL for every URL used in the file.
 BASE_URL = "https://api.instagram.com/v1"
 
 
+# Function to check if the request is performed Successfully or not.
 def check_status(data):
     if data['meta']['code'] == 200:
         return True
@@ -11,12 +22,14 @@ def check_status(data):
         return False
 
 
+# Function to print Sorry Message if the username does not exists.
 def sorry_message():
     print("\n____________________________________________________ User Information _____________________________________________________\n")
     print("Sorry! User with the given username does not exists.")
     print("\n___________________________________________________________________________________________________________________________\n")
 
 
+# Function to print User/Self Information.
 def print_info(data, self='self'):
     if check_status(data):
         if self == 'self':
@@ -29,30 +42,34 @@ def print_info(data, self='self'):
         print("Media Shared            : ", data['data']['counts']['media'])
         print("Followed By             : ", data['data']['counts']['followed_by'])
         print("Followers               : ", data['data']['counts']['follows'])
+        if data['data']['website'] != '':
+            print("Website                 : ", data['data']['website'])
+        else:
+            print("Website                 :  No Website Available")
         if data['data']['bio'] != '':
             print("Bio                     : ", data['data']['bio'])
         else:
-            print("Bio                     :  No info available")
+            print("Bio                     :  No Info Available")
         print("\n___________________________________________________________________________________________________________________________\n")
     else:
         print("\nSome error occurred. Try Again Later.")
 
 
+# Function to get the Details of the Owner.
 def get_self_details():
     url = BASE_URL + "/users/self/?access_token=" + API_ACCESS_TOKEN
     data = requests.get(url).json()
     print_info(data)
 
 
-def get_info(user_id):
-    if user_id:
-        url = BASE_URL + "/users/" + user_id + "/?access_token=" + API_ACCESS_TOKEN
-        data = requests.get(url).json()
-        print_info(data, 'user')
-    else:
-        return False
+# Function to get UserName using UserId.
+def get_user_name(user_id):
+    url = BASE_URL + "/users/" + user_id + "/?access_token=" + API_ACCESS_TOKEN
+    data = requests.get(url).json()
+    return data['data']['username']
 
 
+# Function to get UseerId by UserName.
 def get_user_id(username):
     url = BASE_URL + "/users/search?q=" + username + "&access_token=" + API_ACCESS_TOKEN
     data = requests.get(url).json()
@@ -67,6 +84,17 @@ def get_user_id(username):
         return False
 
 
+# Function to get the Details of the User.
+def get_info(user_id):
+    if user_id:
+        url = BASE_URL + "/users/" + user_id + "/?access_token=" + API_ACCESS_TOKEN
+        data = requests.get(url).json()
+        print_info(data, 'user')
+    else:
+        return False
+
+
+# Function to find the no. of posts by a User. Helper Function to handle the case of No Posts.
 def get_users_recent_post(username):
     user_id = get_user_id(username)
     if user_id:
@@ -78,7 +106,7 @@ def get_users_recent_post(username):
             print("\n_________________________________________________")
         return len(data['data'])
 
-
+# Function to find the Most Popular Post of a User depending upon the criteria given.
 def user_popular_posts(username):
     user_id = get_user_id(username)
     if user_id:
@@ -116,6 +144,7 @@ def user_popular_posts(username):
         return False, False
 
 
+# Function to like the Most Popular Post of a user.
 def like_user_post(username):
     post_id, post_link = user_popular_posts(username)
     if post_id and post_link:
@@ -128,6 +157,7 @@ def like_user_post(username):
             print("Some error occurred! Try Again.")
 
 
+# Function to comment on Most Popular Post of the User.
 def comment_user_post(username):
     post_id, post_link = user_popular_posts(username)
     if post_id and post_link:
@@ -141,6 +171,7 @@ def comment_user_post(username):
             print("\nSome error occurred! Try Again.")
 
 
+# Function to find the Comments in Most Popular Post having a Particular Word.
 def search_in_comment(username, word_to_be_searched='-1'):
     post_id, post_link = user_popular_posts(username)
     if word_to_be_searched == '-1':
@@ -158,7 +189,6 @@ def search_in_comment(username, word_to_be_searched='-1'):
         if word_to_be_searched in list_of_comments[i]:
             comments_found.append(list_of_comments[i])
             comments_id_found.append(comments_id[i])
-
     if len(comments_found) == 0:
         print("There is no comment having the word \'%s\'" % word_to_be_searched)
         return False, post_id, False
@@ -166,9 +196,11 @@ def search_in_comment(username, word_to_be_searched='-1'):
         print("Following comments contains the word \'%s\'" % word_to_be_searched)
         for i in range(len(comments_found)):
             print(str(i+1) + ". " + comments_found[i])
+        print("\nDeleting.....\n")
         return comments_id_found, post_id, comments_found
 
 
+# Function to Delete the comment on Most Popular Post of User having a Particular Word.
 def delete_comment(username):
     user_id = get_user_id(username)
     if user_id:
@@ -185,11 +217,12 @@ def delete_comment(username):
                         print("%s --> Deleted." % comments_found[i])
                         break
                     elif data['meta']['error_message'] == "You cannot delete this comment":
-                        print("%d. %s --> %s as it is made by another user."%(i, comments_found[i], data['meta']['error_message']))
+                        print("%s --> %s as it is made by another user." % (bot_comments_found[i], data['meta']['error_message']))
                     else:
                         print("Some error occurred. Try Again Later.")
 
 
+# Function to find Average Number of Words per Comment.
 def find_average_words_per_comment(post_id):
     url = BASE_URL + "/media/" + str(post_id) + "/comments/?access_token=" + API_ACCESS_TOKEN
     data = requests.get(url).json()
@@ -207,6 +240,7 @@ def find_average_words_per_comment(post_id):
         print("\nAverage no. of words per comment in most interesting post = %.2f" % average_words)
 
 
+# Helper Function to find Average Number of Words per Comment. Made to complete the Need of Objective.
 def average_words_per_comment(username):
     user_id = get_user_id(username)
     if user_id:
@@ -215,7 +249,8 @@ def average_words_per_comment(username):
             find_average_words_per_comment(post_id)
 
 
-print("\nHello User! Welcome to the Instabot Environment.\n")
+# Menu for the User to interact with the Instabot.
+print("\nHello User! Welcome to the Instabot Environment.")
 choice = '1'
 while choice != '9':
     print("\nWhat do you want to do using the bot?")
@@ -231,6 +266,7 @@ while choice != '9':
 
     choice = input("Enter Your Choice(1-9) : ")
 
+# Perform Actions Depending on the User's Choice. Runs Until User wishes to Exit.
     if choice in ['1', '2', '3', '4', '5', '6', '7', '8']:
         if int(choice) == 1:
             get_self_details()
@@ -240,8 +276,8 @@ while choice != '9':
                 user_id = get_user_id(user_name)
                 if user_id:
                     print("\n__________ UserId __________")
-                    print("\nUsername : %s" % user_name)
-                    print("UserId : %s" % user_id)
+                    print("\nUsername : %s" % get_user_name(user_id))
+                    print("UserId   : %s" % user_id)
                     print("\n____________________________")
             elif int(choice) == 3:
                 user_id = get_user_id(user_name)
@@ -263,11 +299,21 @@ while choice != '9':
             elif int(choice) == 8:
                 average_words_per_comment(user_name)
         print("\nWant to do more using Instabot?")
-        ch = input("\nEnter your choice (Y/N) :").upper()
+        ch = 'P'
+        flag = 0
+        while ch not in ['Y','N']:
+            if flag != 0:
+                print("Wrong Choice Entered. Try Again...")
+            ch = input("\nEnter your choice (Y/N) :").upper()
+            flag = 1
+            if ch == 'N':
+                break
         if ch == 'N':
             break
     elif choice == '9':
         pass
     else:
         print("\nWrong choice entered.... Try Again.")
+
+# Terminates the Program by Printing a Message.
 print(" _/\_ Thanks for using Instabot Service. _/\_ ")
