@@ -180,24 +180,28 @@ def search_in_comment(username, word_to_be_searched='-1'):
     data = requests.get(url).json()
     list_of_comments = []
     comments_id = []
+    user = []
     for comment in data['data']:
         list_of_comments.append(comment['text'])
         comments_id.append(comment['id'])
+        user.append(comment['from']['username'])
     comments_found = []
     comments_id_found = []
+    user_found = []
     for i in range(len(list_of_comments)):
         if word_to_be_searched in list_of_comments[i]:
             comments_found.append(list_of_comments[i])
             comments_id_found.append(comments_id[i])
+            user_found.append(user[i])
     if len(comments_found) == 0:
         print("There is no comment having the word \'%s\'" % word_to_be_searched)
-        return False, post_id, False
+        return False, post_id, False, False
     else:
         print("Following comments contains the word \'%s\'" % word_to_be_searched)
         for i in range(len(comments_found)):
             print(str(i+1) + ". " + comments_found[i])
         print("\nDeleting.....\n")
-        return comments_id_found, post_id, comments_found
+        return comments_id_found, post_id, comments_found, user_found
 
 
 # Function to Delete the comment on Most Popular Post of User having a Particular Word.
@@ -206,7 +210,7 @@ def delete_comment(username):
     if user_id:
         if get_users_recent_post(username):
             word_to_be_searched = input("Enter the word you want to search and delete comment for in most interesting post : ")
-            comments_id_found, post_id, comments_found = search_in_comment(username, word_to_be_searched)
+            comments_id_found, post_id, comments_found, user_found = search_in_comment(username, word_to_be_searched)
             if not comments_id_found:
                 return False
             else:
@@ -217,7 +221,7 @@ def delete_comment(username):
                         print("%s --> Deleted." % comments_found[i])
                         break
                     elif data['meta']['error_message'] == "You cannot delete this comment":
-                        print("%s --> %s as it is made by another user." % (bot_comments_found[i], data['meta']['error_message']))
+                        print("%s --> %s as it is made by %s." % (comments_found[i], data['meta']['error_message'], user_found[i]))
                     else:
                         print("Some error occurred. Try Again Later.")
 
